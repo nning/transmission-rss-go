@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 )
@@ -15,7 +16,8 @@ func panicOnError(err error) {
 func main() {
 	var configPath = flag.String("c", "transmission-rss.conf", "Config file path")
 	var help = flag.Bool("h", false, "Print help")
-	var once = flag.Bool("o", false, "Run once")
+	var singleRun = flag.Bool("s", false, "Single run mode")
+	var resetSeen = flag.Bool("r", false, "Reset seen file on startup")
 
 	flag.Parse()
 
@@ -36,11 +38,18 @@ func main() {
 		updateInterval = 600
 	}
 
-	if *once {
-		aggregate(config)
+	seenFile := NewSeenFile()
+
+	if *resetSeen {
+		seenFile.Clear()
+		fmt.Println("SEEN reset")
+	}
+
+	if *singleRun {
+		aggregate(config, seenFile)
 	} else {
 		for {
-			aggregate(config)
+			aggregate(config, seenFile)
 			time.Sleep(time.Duration(updateInterval) * time.Second)
 		}
 	}

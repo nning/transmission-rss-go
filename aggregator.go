@@ -14,19 +14,28 @@ func logTorrent(link string) {
 	fmt.Println("ADD_TORRENT " + u.Query().Get("dn"))
 }
 
-func aggregate(config Config) {
+func aggregate(config Config, seenFile *SeenFile) {
 	parser := gofeed.NewParser()
 
 	for _, feedConfig := range config.Feeds {
-		feed, _ := parser.ParseURL(feedConfig.Url)
+		feed, err := parser.ParseURL(feedConfig.Url)
+
+		if err != nil {
+			fmt.Println("AGGREGATE ERROR " + err.Error() + " (" + feedConfig.Url + ")")
+			continue
+		}
 
 		fmt.Println("AGGREGATE " + feed.Title + " (" + feedConfig.Url + ")")
 
 		sessionId := getSessionId(config)
 
 		for _, item := range feed.Items {
-			addTorrent(config, sessionId, item.Link)
-			logTorrent(item.Link)
+			if !seenFile.IsPresent(item.Link) {
+				addTorrent(config, sessionId, item.Link)
+				logTorrent(item.Link)
+
+				seenFile.Add(item.Link)
+			}
 		}
 	}
 }
