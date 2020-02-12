@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 
 	"github.com/mmcdole/gofeed"
 )
@@ -11,7 +12,12 @@ func logTorrent(link string) {
 	u, err := url.Parse(link)
 	panicOnError(err)
 
-	fmt.Println("ADD_TORRENT " + u.Query().Get("dn"))
+	desc := filepath.Base(u.Path)
+	if u.Scheme == "magnet" {
+		desc = u.Query().Get("dn")
+	}
+
+	fmt.Println("ADD_TORRENT " + desc)
 }
 
 func aggregate(config Config, seenFile *SeenFile) {
@@ -30,11 +36,17 @@ func aggregate(config Config, seenFile *SeenFile) {
 		sessionId := getSessionId(config)
 
 		for _, item := range feed.Items {
-			if !seenFile.IsPresent(item.Link) {
-				addTorrent(config, sessionId, item.Link)
-				logTorrent(item.Link)
+			link := item.Link
 
-				seenFile.Add(item.Link)
+			if len(item.Enclosures) > 0 {
+				link = item.Enclosures[0].URL
+			}
+
+			if !seenFile.IsPresent(link) {
+				addTorrent(config, sessionId, link)
+				logTorrent(link)
+
+				seenFile.Add(link)
 			}
 		}
 	}
