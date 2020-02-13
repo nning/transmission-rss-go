@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 
 	"github.com/mmcdole/gofeed"
 )
 
 type Aggregator struct {
-	Client    *Client
-	Config    *Config
-	Parser    *gofeed.Parser
-	SeenFile  *SeenFile
+	Client   *Client
+	Config   *Config
+	Parser   *gofeed.Parser
+	SeenFile *SeenFile
 }
 
 func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
@@ -20,10 +21,10 @@ func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
 	parser := gofeed.NewParser()
 
 	self := Aggregator{
-		Client:    client,
-		Config:    config,
-		Parser:    parser,
-		SeenFile:  seenFile,
+		Client:   client,
+		Config:   config,
+		Parser:   parser,
+		SeenFile: seenFile,
 	}
 
 	return &self
@@ -41,18 +42,30 @@ func logTorrent(link string) {
 	fmt.Println("ADD_TORRENT " + desc)
 }
 
-func (self *Aggregator) processItem(item *gofeed.Item) {
+func match(title string, expr string) bool {
+	re, err := regexp.Compile(expr)
+	panicOnError(err)
+
+	return re.Match([]byte(title))
+}
+
+func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 	link := item.Link
 
 	if len(item.Enclosures) > 0 {
 		link = item.Enclosures[0].URL
 	}
 
-	if !self.SeenFile.IsPresent(link) {
+	if match(item.Title, feedConfig.RegExp) && !self.SeenFile.IsPresent(link) {
 		self.Client.AddTorrent(link)
 		logTorrent(link)
 
 		self.SeenFile.Add(link)
+
+		if feedConfig.SeedRatioLimit > 0 {
+			// TODO setTorrent
+			// self.Client.SetTorrent(link, options)
+		}
 	}
 }
 
@@ -67,7 +80,7 @@ func (self *Aggregator) processFeed(feedConfig *Feed) {
 	fmt.Println("AGGREGATE " + feed.Title + " (" + feedConfig.Url + ")")
 
 	for _, item := range feed.Items {
-		self.processItem(item)
+		self.processItem(feedConfig, item)
 	}
 }
 

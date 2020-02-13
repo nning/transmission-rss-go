@@ -7,7 +7,9 @@ import (
 )
 
 type Feed struct {
-	Url string `yaml:"url"`
+	Url            string `yaml:"url"`
+	RegExp         string `yaml:"regexp"`
+	SeedRatioLimit int    `yaml:"seed_ratio_limit"`
 }
 
 type Config struct {
