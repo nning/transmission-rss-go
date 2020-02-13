@@ -86,6 +86,9 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 
 	response, err := client.Do(request)
 	panicOnError(err)
+	
+	// TODO Catch 409, update SessionId, retry
+	//      https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt#L56
 
 	return *response
 }
