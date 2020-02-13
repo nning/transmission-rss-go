@@ -9,21 +9,21 @@ import (
 )
 
 type Aggregator struct {
-	Config *Config
-	Parser *gofeed.Parser
-	SeenFile *SeenFile
-	SessionId string
+	Client    *Client
+	Config    *Config
+	Parser    *gofeed.Parser
+	SeenFile  *SeenFile
 }
 
 func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
+	client := NewClient(config)
 	parser := gofeed.NewParser()
-	sessionId := getSessionId(config)
 
 	self := Aggregator{
-		Config: config,
-		Parser: parser,
-		SeenFile: seenFile,
-		SessionId: sessionId,
+		Client:    client,
+		Config:    config,
+		Parser:    parser,
+		SeenFile:  seenFile,
 	}
 
 	return &self
@@ -49,7 +49,7 @@ func (self *Aggregator) processItem(item *gofeed.Item) {
 	}
 
 	if !self.SeenFile.IsPresent(link) {
-		addTorrent(self.Config, self.SessionId, link)
+		self.Client.AddTorrent(link)
 		logTorrent(link)
 
 		self.SeenFile.Add(link)

@@ -16,7 +16,19 @@ type RequestBody struct {
 	} `json:"arguments"`
 }
 
-// TODO "class"
+type Client struct {
+	Config    *Config
+	SessionId string
+}
+
+func NewClient(config *Config) *Client {
+	client := Client{
+		Config:    config,
+		SessionId: getSessionId(config),
+	}
+
+	return &client
+}
 
 func getSessionId(config *Config) string {
 	client := &http.Client{}
@@ -40,14 +52,14 @@ func getSessionId(config *Config) string {
 	return sessionId
 }
 
-func rpc(config *Config, sessionId string, requestBody RequestBody) http.Response {
+func (self *Client) UpdateSessionId() {
+	self.SessionId = getSessionId(self.Config)
+}
+
+func (self *Client) rpc(requestBody RequestBody) http.Response {
 	client := &http.Client{}
 
-	url := getUrl(config)
-
-	if sessionId == "" {
-		sessionId = getSessionId(config)
-	}
+	url := getUrl(self.Config)
 
 	jsonData, err := json.Marshal(requestBody)
 	panicOnError(err)
@@ -55,10 +67,11 @@ func rpc(config *Config, sessionId string, requestBody RequestBody) http.Respons
 	request, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	panicOnError(err)
 
-	request.SetBasicAuth(config.Login.Username, config.Login.Password)
+	login := self.Config.Login
+	request.SetBasicAuth(login.Username, login.Password)
 
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Add("X-Transmission-Session-Id", sessionId)
+	request.Header.Add("X-Transmission-Session-Id", self.SessionId)
 
 	response, err := client.Do(request)
 	panicOnError(err)
@@ -66,14 +79,14 @@ func rpc(config *Config, sessionId string, requestBody RequestBody) http.Respons
 	return *response
 }
 
-func addTorrent(config *Config, sessionId string, link string) {
+func (self *Client) AddTorrent(link string) {
 	var requestBody RequestBody
 	requestBody.Method = "torrent-add"
 	requestBody.Arguments.Filename = link
 
-	if config.Paused {
+	if self.Config.Paused {
 		requestBody.Arguments.Paused = true
 	}
 
-	rpc(config, sessionId, requestBody)
+	self.rpc(requestBody)
 }
