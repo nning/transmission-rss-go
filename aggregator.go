@@ -8,6 +8,27 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+type Aggregator struct {
+	Config *Config
+	Parser *gofeed.Parser
+	SeenFile *SeenFile
+	SessionId string
+}
+
+func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
+	parser := gofeed.NewParser()
+	sessionId := getSessionId(config)
+
+	self := Aggregator{
+		Config: config,
+		Parser: parser,
+		SeenFile: seenFile,
+		SessionId: sessionId,
+	}
+
+	return &self
+}
+
 func logTorrent(link string) {
 	u, err := url.Parse(link)
 	panicOnError(err)
@@ -20,34 +41,38 @@ func logTorrent(link string) {
 	fmt.Println("ADD_TORRENT " + desc)
 }
 
-func aggregate(config Config, seenFile *SeenFile) {
-	parser := gofeed.NewParser()
+func (self *Aggregator) processItem(item *gofeed.Item) {
+	link := item.Link
 
-	for _, feedConfig := range config.Feeds {
-		feed, err := parser.ParseURL(feedConfig.Url)
+	if len(item.Enclosures) > 0 {
+		link = item.Enclosures[0].URL
+	}
 
-		if err != nil {
-			fmt.Println("AGGREGATE ERROR " + err.Error() + " (" + feedConfig.Url + ")")
-			continue
-		}
+	if !self.SeenFile.IsPresent(link) {
+		addTorrent(self.Config, self.SessionId, link)
+		logTorrent(link)
 
-		fmt.Println("AGGREGATE " + feed.Title + " (" + feedConfig.Url + ")")
+		self.SeenFile.Add(link)
+	}
+}
 
-		sessionId := getSessionId(config)
+func (self *Aggregator) processFeed(feedConfig *Feed) {
+	feed, err := self.Parser.ParseURL(feedConfig.Url)
 
-		for _, item := range feed.Items {
-			link := item.Link
+	if err != nil {
+		fmt.Println("AGGREGATE ERROR " + err.Error() + " (" + feedConfig.Url + ")")
+		return
+	}
 
-			if len(item.Enclosures) > 0 {
-				link = item.Enclosures[0].URL
-			}
+	fmt.Println("AGGREGATE " + feed.Title + " (" + feedConfig.Url + ")")
 
-			if !seenFile.IsPresent(link) {
-				addTorrent(config, sessionId, link)
-				logTorrent(link)
+	for _, item := range feed.Items {
+		self.processItem(item)
+	}
+}
 
-				seenFile.Add(link)
-			}
-		}
+func (self *Aggregator) Run() {
+	for _, feedConfig := range self.Config.Feeds {
+		self.processFeed(&feedConfig)
 	}
 }

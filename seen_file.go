@@ -43,24 +43,24 @@ func NewSeenFile(params ...string) *SeenFile {
 
 	fmt.Println("SEEN " + strconv.Itoa(len(items)) + " items")
 
-	seen := SeenFile{
+	self := SeenFile{
 		Path:  seenPath,
 		Items: items,
 	}
 
-	return &seen
+	return &self
 }
 
-func (seen *SeenFile) Add(link string) {
+func (self *SeenFile) Add(link string) {
 	hash := sha256sum(link)
 
-	if seen.IsPresent(link) {
+	if self.IsPresent(link) {
 		return
 	}
 
-	seen.Items = append(seen.Items, hash)
+	self.Items = append(self.Items, hash)
 
-	file, err := os.OpenFile(seen.Path, os.O_APPEND|os.O_WRONLY, 0600)
+	file, err := os.OpenFile(self.Path, os.O_APPEND|os.O_WRONLY, 0600)
 	panicOnError(err)
 	defer file.Close()
 
@@ -70,8 +70,8 @@ func (seen *SeenFile) Add(link string) {
 	file.Close()
 }
 
-func (seen *SeenFile) IsPresent(link string) bool {
-	for _, item := range seen.Items {
+func (self *SeenFile) IsPresent(link string) bool {
+	for _, item := range self.Items {
 		if item == sha256sum(link) {
 			return true
 		}
@@ -80,14 +80,14 @@ func (seen *SeenFile) IsPresent(link string) bool {
 	return false
 }
 
-func (seen *SeenFile) Count() int {
-	return len(seen.Items)
+func (self *SeenFile) Count() int {
+	return len(self.Items)
 }
 
-func (seen *SeenFile) Clear() {
-	seen.Items = []string{}
+func (self *SeenFile) Clear() {
+	self.Items = []string{}
 
-	err := os.Truncate(seen.Path, 0)
+	err := os.Truncate(self.Path, 0)
 	panicOnError(err)
 }
 

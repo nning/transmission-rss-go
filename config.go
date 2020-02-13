@@ -6,10 +6,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Feed struct {
+	Url string `yaml:"url"`
+}
+
 type Config struct {
-	Feeds []struct {
-		Url string `yaml:"url"`
-	} `yaml:"feeds"`
+	Feeds []Feed `yaml:"feeds"`
 
 	Server struct {
 		Host    string `yaml:"host"`
@@ -24,8 +26,11 @@ type Config struct {
 	} `yaml:"login"`
 
 	UpdateInterval int `yaml:"update_interval"`
+
+	Paused bool `yaml:"add_paused"` // TODO
 }
 
+// TODO NewConfig
 func loadConfig(configPath string) Config {
 	yamlData, err := ioutil.ReadFile(configPath)
 	panicOnError(err)
@@ -37,7 +42,7 @@ func loadConfig(configPath string) Config {
 	return config
 }
 
-func getUrl(config Config) string {
+func getUrl(config *Config) string {
 	url := ""
 
 	if config.Server.Tls {

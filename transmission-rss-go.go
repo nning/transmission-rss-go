@@ -39,6 +39,7 @@ func main() {
 	}
 
 	seenFile := NewSeenFile()
+	aggregator := NewAggregator(&config, seenFile)
 
 	if *resetSeen {
 		seenFile.Clear()
@@ -46,10 +47,10 @@ func main() {
 	}
 
 	if *singleRun {
-		aggregate(config, seenFile)
+		aggregator.Run()
 	} else {
 		for {
-			aggregate(config, seenFile)
+			aggregator.Run()
 			time.Sleep(time.Duration(updateInterval) * time.Second)
 		}
 	}

@@ -8,7 +8,17 @@ import (
 	"net/http"
 )
 
-func getSessionId(config Config) string {
+type RequestBody struct {
+	Method    string `json:"method"`
+	Arguments struct {
+		Filename string `json:"filename"`
+		Paused   bool   `json:"paused"`
+	} `json:"arguments"`
+}
+
+// TODO "class"
+
+func getSessionId(config *Config) string {
 	client := &http.Client{}
 
 	url := getUrl(config)
@@ -30,7 +40,7 @@ func getSessionId(config Config) string {
 	return sessionId
 }
 
-func rpc(config Config, sessionId string, requestBody RequestBody) http.Response {
+func rpc(config *Config, sessionId string, requestBody RequestBody) http.Response {
 	client := &http.Client{}
 
 	url := getUrl(config)
@@ -56,10 +66,14 @@ func rpc(config Config, sessionId string, requestBody RequestBody) http.Response
 	return *response
 }
 
-func addTorrent(config Config, sessionId string, link string) {
+func addTorrent(config *Config, sessionId string, link string) {
 	var requestBody RequestBody
 	requestBody.Method = "torrent-add"
 	requestBody.Arguments.Filename = link
+
+	if config.Paused {
+		requestBody.Arguments.Paused = true
+	}
 
 	rpc(config, sessionId, requestBody)
 }
