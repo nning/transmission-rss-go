@@ -57,14 +57,19 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 	}
 
 	if match(item.Title, feedConfig.RegExp) && !self.SeenFile.IsPresent(link) {
-		self.Client.AddTorrent(link)
+		id := self.Client.AddTorrent(link)
 		logTorrent(link)
 
 		self.SeenFile.Add(link)
 
 		if feedConfig.SeedRatioLimit > 0 {
-			// TODO setTorrent
-			// self.Client.SetTorrent(link, options)
+			arguments := RequestArguments{
+				Ids:            []int{id},
+				SeedRatioLimit: feedConfig.SeedRatioLimit,
+				SeedRatioMode:  1,
+			}
+
+			self.Client.SetTorrent(arguments)
 		}
 	}
 }
