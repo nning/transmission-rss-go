@@ -56,7 +56,12 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 		link = item.Enclosures[0].URL
 	}
 
-	if match(item.Title, feedConfig.RegExp) && !self.SeenFile.IsPresent(link) {
+	if !self.SeenFile.IsPresent(link) {
+		if !match(item.Title, feedConfig.RegExp) {
+			self.SeenFile.Add(link)
+			return
+		}
+
 		id := self.Client.AddTorrent(link)
 		logTorrent(link)
 
