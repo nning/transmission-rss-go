@@ -63,11 +63,11 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 		self.SeenFile.Add(link)
 
 		if feedConfig.SeedRatioLimit > 0 {
-			arguments := RequestArguments{
-				Ids:            []int{id},
-				SeedRatioLimit: feedConfig.SeedRatioLimit,
-				SeedRatioMode:  1,
-			}
+			arguments := make(map[string]interface{})
+
+			arguments["ids"] = []int{id}
+			arguments["seedRatioLimit"] = feedConfig.SeedRatioLimit
+			arguments["seedRatioMode"] = 1
 
 			self.Client.SetTorrent(arguments)
 		}

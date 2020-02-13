@@ -8,13 +8,7 @@ import (
 	"net/http"
 )
 
-type RequestArguments struct {
-	Filename       string  `json:"filename"`
-	Paused         bool    `json:"paused"`
-	Ids            []int   `json:"ids"`
-	SeedRatioLimit float32 `json:"seedRatioLimit"`
-	SeedRatioMode  int     `json:"seedRatioMode"`
-}
+type RequestArguments map[string]interface{}
 
 type RequestBody struct {
 	Method    string           `json:"method"`
@@ -81,8 +75,6 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 	jsonData, err := json.Marshal(requestBody)
 	panicOnError(err)
 
-	// fmt.Println(string(jsonData))
-
 	request, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	panicOnError(err)
 
@@ -101,10 +93,11 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 func (self *Client) AddTorrent(link string) int {
 	var requestBody RequestBody
 	requestBody.Method = "torrent-add"
-	requestBody.Arguments.Filename = link
+	requestBody.Arguments = make(map[string]interface{})
+	requestBody.Arguments["filename"] = link
 
 	if self.Config.Paused {
-		requestBody.Arguments.Paused = true
+		requestBody.Arguments["paused"] = true
 	}
 
 	response := self.rpc(requestBody)
@@ -129,14 +122,5 @@ func (self *Client) SetTorrent(arguments RequestArguments) {
 	requestBody.Method = "torrent-set"
 	requestBody.Arguments = arguments
 
-	// fmt.Println(requestBody)
-
 	self.rpc(requestBody)
-
-	// response := self.rpc(requestBody)
-	//
-	// buf := new(bytes.Buffer)
-	// buf.ReadFrom(response.Body)
-	//
-	// fmt.Println(buf.String())
 }
