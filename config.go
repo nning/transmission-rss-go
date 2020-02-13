@@ -27,11 +27,10 @@ type Config struct {
 
 	UpdateInterval int `yaml:"update_interval"`
 
-	Paused bool `yaml:"add_paused"` // TODO
+	Paused bool `yaml:"add_paused"`
 }
 
-// TODO NewConfig
-func loadConfig(configPath string) Config {
+func NewConfig(configPath string) *Config {
 	yamlData, err := ioutil.ReadFile(configPath)
 	panicOnError(err)
 
@@ -39,7 +38,7 @@ func loadConfig(configPath string) Config {
 	err = yaml.Unmarshal(yamlData, &config)
 	panicOnError(err)
 
-	return config
+	return &config
 }
 
 func getUrl(config *Config) string {

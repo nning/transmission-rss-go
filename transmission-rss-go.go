@@ -31,15 +31,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := loadConfig(*configPath)
+	config := NewConfig(*configPath)
+	seenFile := NewSeenFile()
 
 	updateInterval := config.UpdateInterval
 	if updateInterval == 0 {
 		updateInterval = 600
 	}
 
-	seenFile := NewSeenFile()
-	aggregator := NewAggregator(&config, seenFile)
+	aggregator := NewAggregator(config, seenFile)
 
 	if *resetSeen {
 		seenFile.Clear()
