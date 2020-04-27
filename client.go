@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 type RequestArguments map[string]interface{}
@@ -56,9 +57,15 @@ func getSessionId(config *Config) string {
 	_, err = ioutil.ReadAll(response.Body)
 	panicOnError(err)
 
+	if response.StatusCode != 409 {
+		status := strconv.Itoa(response.StatusCode)
+		fmt.Println("SESSION_ID ERROR", status)
+		panic("Could not obtain session ID, got HTTP response code " + status + ".")
+	}
+
 	sessionId := response.Header["X-Transmission-Session-Id"][0]
 
-	fmt.Println("SESSION_ID " + sessionId)
+	fmt.Println("SESSION_ID", sessionId)
 
 	return sessionId
 }
@@ -86,7 +93,7 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 
 	response, err := client.Do(request)
 	panicOnError(err)
-	
+
 	// TODO Catch 409, update SessionId, retry
 	//      https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt#L56
 
