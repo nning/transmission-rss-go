@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 
+	"net/url"
+
+	"github.com/nning/transmission-rss-go/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -10,6 +14,7 @@ type Feed struct {
 	Url            string  `yaml:"url"`
 	RegExp         string  `yaml:"regexp"`
 	SeedRatioLimit float32 `yaml:"seed_ratio_limit"`
+	DownloadPath   string  `yaml:"download_path"`
 }
 
 type Config struct {
@@ -33,6 +38,10 @@ type Config struct {
 }
 
 func NewConfig(configPath string) *Config {
+	if !utils.IsExistsPath(configPath) {
+		panicOnError(fmt.Errorf("Config path %s not exist", configPath))
+	}
+
 	yamlData, err := ioutil.ReadFile(configPath)
 	panicOnError(err)
 
@@ -40,20 +49,24 @@ func NewConfig(configPath string) *Config {
 	err = yaml.Unmarshal(yamlData, &config)
 	panicOnError(err)
 
+	config.UpdateInterval = utils.ValueOrDefaultInt(config.UpdateInterval, 600)
+	config.Server.Host = utils.ValueOrDefaultString(config.Server.Host, "localhost")
+	config.Server.RpcPath = utils.ValueOrDefaultString(config.Server.RpcPath, "/transmission/rpc")
+	config.Server.Port = utils.ValueOrDefaultInt(config.Server.Port, 9091)
+
 	return &config
 }
 
-func getUrl(config *Config) string {
-	url := ""
-
+func (config *Config) ServerURL() string {
+	uri := url.URL{
+		Host: fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port),
+		Path: config.Server.RpcPath,
+	}
 	if config.Server.Tls {
-		url += "https://"
+		uri.Scheme = "https"
 	} else {
-		url += "http://"
+		uri.Scheme = "http"
 	}
 
-	url += config.Server.Host
-	url += config.Server.RpcPath
-
-	return url
+	return uri.String()
 }

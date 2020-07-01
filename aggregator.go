@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net/url"
-	"path/filepath"
+	"net/http"
 	"regexp"
 
 	"github.com/mmcdole/gofeed"
+	"github.com/nning/transmission-rss-go/logger"
 )
 
 type Aggregator struct {
@@ -19,6 +19,11 @@ type Aggregator struct {
 func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
 	client := NewClient(config)
 	parser := gofeed.NewParser()
+	parser.Client = &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return fmt.Errorf("302")
+		},
+	}
 
 	self := Aggregator{
 		Client:   client,
@@ -28,18 +33,6 @@ func NewAggregator(config *Config, seenFile *SeenFile) *Aggregator {
 	}
 
 	return &self
-}
-
-func logTorrent(link string) {
-	u, err := url.Parse(link)
-	panicOnError(err)
-
-	desc := filepath.Base(u.Path)
-	if u.Scheme == "magnet" {
-		desc = u.Query().Get("dn")
-	}
-
-	fmt.Println("ADD_TORRENT " + desc)
 }
 
 func match(title string, expr string) bool {
@@ -62,8 +55,12 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 			return
 		}
 
-		id := self.Client.AddTorrent(link)
-		logTorrent(link)
+		logger.Info("ADD", item.Title)
+		id, err := self.Client.AddTorrent(link, feedConfig.DownloadPath)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
 
 		self.SeenFile.Add(link)
 
@@ -80,14 +77,15 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 }
 
 func (self *Aggregator) processFeed(feedConfig *Feed) {
+	logger.Info("Fetching", feedConfig.Url)
 	feed, err := self.Parser.ParseURL(feedConfig.Url)
 
 	if err != nil {
-		fmt.Println("AGGREGATE ERROR " + err.Error() + " (" + feedConfig.Url + ")")
+		logger.Error("Fetching", err.Error())
 		return
 	}
 
-	fmt.Println("AGGREGATE " + feed.Title + " (" + feedConfig.Url + ")")
+	logger.Info("Found", len(feed.Items), "items")
 
 	for _, item := range feed.Items {
 		self.processItem(feedConfig, item)
