@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/nning/transmission-rss-go/logger"
 )
 
 type RequestArguments map[string]interface{}
@@ -30,14 +33,18 @@ type ResponseBody struct {
 }
 
 type Client struct {
-	Config    *Config
-	SessionId string
+	Config     *Config
+	httpClient http.Client
+	SessionId  string
 }
 
 func NewClient(config *Config) *Client {
 	client := Client{
 		Config:    config,
 		SessionId: getSessionId(config),
+		httpClient: http.Client{
+			Timeout: 30 * time.Second,
+		},
 	}
 
 	return &client
@@ -60,13 +67,13 @@ func getSessionId(config *Config) string {
 
 	if response.StatusCode != 409 {
 		status := strconv.Itoa(response.StatusCode)
-		fmt.Println("SESSION_ID ERROR", status)
+		logger.Error("SESSION_ID ERROR", status)
 		panic("Could not obtain session ID, got HTTP response code " + status + ".")
 	}
 
 	sessionId := response.Header["X-Transmission-Session-Id"][0]
 
-	fmt.Println("SESSION_ID", sessionId)
+	logger.Info("SESSION", sessionId)
 
 	return sessionId
 }
@@ -76,15 +83,18 @@ func (self *Client) UpdateSessionId() {
 }
 
 func (self *Client) rpc(requestBody RequestBody) http.Response {
-	client := &http.Client{}
-
 	url := self.Config.ServerURL()
 
 	jsonData, err := json.Marshal(requestBody)
 	panicOnError(err)
 
 	request, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
-	panicOnError(err)
+	if err != nil {
+		logger.Error("RPC request error", err)
+		return http.Response{
+			StatusCode: 504,
+		}
+	}
 
 	login := self.Config.Login
 	request.SetBasicAuth(login.Username, login.Password)
@@ -92,7 +102,7 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("X-Transmission-Session-Id", self.SessionId)
 
-	response, err := client.Do(request)
+	response, err := self.httpClient.Do(request)
 	panicOnError(err)
 
 	// TODO Catch 409, update SessionId, retry
@@ -101,11 +111,17 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 	return *response
 }
 
-func (self *Client) AddTorrent(link string) (id int, err error) {
+func (self *Client) AddTorrent(link string, downloadPath string) (id int, err error) {
 	var requestBody RequestBody
+
 	requestBody.Method = "torrent-add"
 	requestBody.Arguments = make(map[string]interface{})
 	requestBody.Arguments["filename"] = link
+	if len(downloadPath) > 0 {
+		requestBody.Arguments["download-path"] = downloadPath
+	}
+
+	// fmt.Println("ADD URL", link)
 
 	if self.Config.Paused {
 		requestBody.Arguments["paused"] = true
@@ -122,7 +138,7 @@ func (self *Client) AddTorrent(link string) (id int, err error) {
 
 	var jsonResult ResponseBody
 	json.Unmarshal(jsonBody, &jsonResult)
-	if jsonResult.Result != "ok" {
+	if jsonResult.Result != "success" {
 		return 0, errors.New(jsonResult.Result)
 	}
 

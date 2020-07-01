@@ -1,8 +1,7 @@
 package main
 
 var (
-	defaultConf = `
-#
+	defaultConf = `#
 # Indent consistently with spaces!
 # Format documentation on http://www.yaml.org/.
 #
@@ -24,15 +23,6 @@ feeds:
   - url: http://example.com/feed5
     download_path: /home/user/Downloads
   - url: http://example.com/feed6
-    regexp:
-      - match1
-      - match2
-  - url: http://example.com/feed7
-    regexp:
-      - matcher: match1
-        download_path: /home/user/match1
-      - matcher: match2
-        download_path: /home/user/match2
   - url: http://example.com/feed8
     validate_cert: false
 

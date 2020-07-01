@@ -56,7 +56,7 @@ func (self *Aggregator) processItem(feedConfig *Feed, item *gofeed.Item) {
 		}
 
 		logger.Info("ADD", item.Title)
-		id, err := self.Client.AddTorrent(link)
+		id, err := self.Client.AddTorrent(link, feedConfig.DownloadPath)
 		if err != nil {
 			logger.Error(err)
 			return

@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/nning/transmission-rss-go/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,10 +17,17 @@ func panicOnError(err error) {
 }
 
 var (
-	configPath = ""
-	singleRun  = false
-	resetSeen  = false
+	configPath        = ""
+	singleRun         = false
+	resetSeen         = false
+	defaultConfigPath = "$HOME/.transmission-rss.conf"
+	homePath          = ""
 )
+
+func init() {
+	homePath, _ = os.UserHomeDir()
+	defaultConfigPath = fmt.Sprintf("%s/.transmission-rss.conf", homePath)
+}
 
 func main() {
 	app := &cli.App{
@@ -28,7 +36,7 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "config, c",
-				Value:       "transmission-rss.conf",
+				Value:       defaultConfigPath,
 				Usage:       "Config file path",
 				Destination: &configPath,
 			},
@@ -52,10 +60,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func run(ctx *cli.Context) error {
+	if configPath == defaultConfigPath {
+		utils.TouchIfNotExist(configPath, defaultConf)
+	}
+
 	config := NewConfig(configPath)
 	seenFile := NewSeenFile()
 

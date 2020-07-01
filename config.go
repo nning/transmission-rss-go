@@ -14,6 +14,7 @@ type Feed struct {
 	Url            string  `yaml:"url"`
 	RegExp         string  `yaml:"regexp"`
 	SeedRatioLimit float32 `yaml:"seed_ratio_limit"`
+	DownloadPath   string  `yaml:"download_path"`
 }
 
 type Config struct {
@@ -37,7 +38,9 @@ type Config struct {
 }
 
 func NewConfig(configPath string) *Config {
-	utils.TouchIfNotExist(configPath, defaultConf)
+	if !utils.IsExistsPath(configPath) {
+		panicOnError(fmt.Errorf("Config path %s not exist", configPath))
+	}
 
 	yamlData, err := ioutil.ReadFile(configPath)
 	panicOnError(err)
@@ -63,9 +66,6 @@ func (config *Config) ServerURL() string {
 		uri.Scheme = "https"
 	} else {
 		uri.Scheme = "http"
-	}
-	if len(config.Login.Username) > 0 {
-		uri.User = url.UserPassword(config.Login.Username, config.Login.Password)
 	}
 
 	return uri.String()
