@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -45,7 +46,7 @@ func NewClient(config *Config) *Client {
 func getSessionId(config *Config) string {
 	client := &http.Client{}
 
-	url := getUrl(config)
+	url := config.ServerURL()
 
 	request, err := http.NewRequest("GET", url, nil)
 	panicOnError(err)
@@ -77,7 +78,7 @@ func (self *Client) UpdateSessionId() {
 func (self *Client) rpc(requestBody RequestBody) http.Response {
 	client := &http.Client{}
 
-	url := getUrl(self.Config)
+	url := self.Config.ServerURL()
 
 	jsonData, err := json.Marshal(requestBody)
 	panicOnError(err)
@@ -100,7 +101,7 @@ func (self *Client) rpc(requestBody RequestBody) http.Response {
 	return *response
 }
 
-func (self *Client) AddTorrent(link string) int {
+func (self *Client) AddTorrent(link string) (id int, err error) {
 	var requestBody RequestBody
 	requestBody.Method = "torrent-add"
 	requestBody.Arguments = make(map[string]interface{})
@@ -111,6 +112,9 @@ func (self *Client) AddTorrent(link string) int {
 	}
 
 	response := self.rpc(requestBody)
+	if response.StatusCode != 200 {
+		return 0, fmt.Errorf("RPC call error status: %d", response.StatusCode)
+	}
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(response.Body)
@@ -118,13 +122,16 @@ func (self *Client) AddTorrent(link string) int {
 
 	var jsonResult ResponseBody
 	json.Unmarshal(jsonBody, &jsonResult)
+	if jsonResult.Result != "ok" {
+		return 0, errors.New(jsonResult.Result)
+	}
 
-	id := jsonResult.Arguments.TorrentAdded.Id
+	id = jsonResult.Arguments.TorrentAdded.Id
 	if id == 0 {
 		id = jsonResult.Arguments.TorrentDuplicate.Id
 	}
 
-	return id
+	return id, nil
 }
 
 func (self *Client) SetTorrent(arguments RequestArguments) {

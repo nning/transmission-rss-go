@@ -8,6 +8,8 @@ import (
 	"os/user"
 	"path"
 	"strconv"
+
+	"github.com/nning/transmission-rss-go/utils"
 )
 
 type SeenFile struct {
@@ -25,6 +27,7 @@ func NewSeenFile(params ...string) *SeenFile {
 		homeDir := user.HomeDir
 
 		seenPath = path.Join(homeDir, ".config", "transmission", "seen")
+		utils.TouchIfNotExist(seenPath, "")
 	} else {
 		seenPath = params[0]
 	}

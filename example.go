@@ -1,0 +1,92 @@
+package main
+
+var (
+	defaultConf = `
+#
+# Indent consistently with spaces!
+# Format documentation on http://www.yaml.org/.
+#
+# WARNING:
+#   If you want to override a nested option like "log.target" you also have to
+#   explicitly specify the others like "log.level". (True for categories
+#   "server", "login", "log", "privileges", and "client".)
+#
+
+# List of feeds to watch.
+
+feeds:
+  - url: http://example.com/feed1
+  - url: http://example.com/feed2
+  - url: http://example.com/feed3
+    regexp: match1
+  - url: http://example.com/feed4
+    regexp: (match1|match2)
+  - url: http://example.com/feed5
+    download_path: /home/user/Downloads
+  - url: http://example.com/feed6
+    regexp:
+      - match1
+      - match2
+  - url: http://example.com/feed7
+    regexp:
+      - matcher: match1
+        download_path: /home/user/match1
+      - matcher: match2
+        download_path: /home/user/match2
+  - url: http://example.com/feed8
+    validate_cert: false
+
+# Feed probing interval in seconds. Default is 600.
+
+#update_interval: 600
+
+# Whether to add torrents paused. Default is false.
+
+#add_paused: false
+
+# The transmission server to connect to. Default is localhost:9091.
+
+#server:
+#  host: localhost
+#  port: 9091
+#  rpc_path: /transmission/rpc
+
+# Uncomment if transmission server requires login.
+
+#login:
+#  username: transmission
+#  password: transmission
+
+# Where to log. Default target is stderr, level debug. Target can be IO symbol
+# (e.g. ":stderr", ":stdout") or file path (e.g.
+# "/var/log/transmission-rss.log"). Level can be "error", "warn", "info",
+# "debug".
+
+#log:
+#  target: :stderr
+#  level: debug
+
+# Drop privileges. If omitted, privileges are not dropped.
+
+#privileges:
+#  user: nobody
+#  group: nobody
+
+# Other Transmission client options
+
+#client:
+#  timeout: 5
+
+# Fork?
+
+#fork: false
+
+# Single run mode?
+
+# single: false
+
+# Save PID.
+
+#pid_file: false
+`
+)
